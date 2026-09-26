@@ -1,0 +1,36 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv/
+venv/
+
+# Tooling / caches
+.ruff_cache/
+.pytest_cache/
+.ty_cache/
+.coverage
+htmlcov/
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+
+# Local data: labeled datasets and fitted calibration files
+data/
+*.jsonl
+calibration*.json
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store
+
+*.log
+.claude/settings.local.json
