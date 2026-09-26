@@ -43,8 +43,8 @@ def create_app(engine: Engine, api_key: str | None = None) -> FastAPI:
     async def _http_error(_: Request, exc: StarletteHTTPException) -> JSONResponse:
         return JSONResponse({"error": str(exc.detail)}, status_code=exc.status_code)
 
-    @app.get("/healthz")
-    async def healthz() -> dict:
+    @app.get("/health")
+    async def health() -> dict:
         return {"ok": True, "backend": engine.backend.name}
 
     async def evaluate(request: Request) -> dict:

@@ -44,8 +44,8 @@ def test_typesafe_path_is_an_alias(base_url):
     assert r.status_code == 200 and r.json()["answers"]["q"]["type"] == "noul"
 
 
-def test_healthz(base_url):
-    r = requests.get(f"{base_url}/healthz", timeout=5)
+def test_health(base_url):
+    r = requests.get(f"{base_url}/health", timeout=5)
     assert r.status_code == 200 and r.json()["backend"] == "mock"
 
 
