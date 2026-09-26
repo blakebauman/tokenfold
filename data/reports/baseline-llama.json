@@ -1,0 +1,596 @@
+{
+  "model": "llama-cpp:Qwen3-4B-Instruct-2507-Q4_K_M",
+  "data": "data/eval/all.jsonl",
+  "rows": 2520,
+  "per_type": {
+    "choice": {
+      "T": 7.7438,
+      "slope": -0.2137,
+      "fit_n": 330,
+      "before": {
+        "n": 460,
+        "acc": 0.7457,
+        "nll": 3.0154,
+        "ece": 0.2407,
+        "mean_confidence": 0.9712
+      },
+      "after": {
+        "n": 460,
+        "acc": 0.7457,
+        "nll": 0.8546,
+        "ece": 0.0459,
+        "mean_confidence": 0.674
+      }
+    },
+    "score": {
+      "T": 5.5713,
+      "slope": 0.0,
+      "fit_n": 100,
+      "before": {
+        "n": 200,
+        "acc": 0.5,
+        "nll": 2.9165,
+        "ece": 0.3962,
+        "mean_confidence": 0.8721,
+        "mae": 0.6084
+      },
+      "after": {
+        "n": 200,
+        "acc": 0.5,
+        "nll": 1.1953,
+        "ece": 0.0587,
+        "mean_confidence": 0.4006,
+        "mae": 0.6217
+      }
+    },
+    "noul": {
+      "T": 5.0112,
+      "slope": 0.0,
+      "fit_n": 500,
+      "before": {
+        "n": 600,
+        "acc": 0.7983,
+        "nll": 1.0464,
+        "ece": 0.1736,
+        "mean_confidence": 0.9438
+      },
+      "after": {
+        "n": 600,
+        "acc": 0.7983,
+        "nll": 0.4468,
+        "ece": 0.0202,
+        "mean_confidence": 0.5838
+      }
+    }
+  },
+  "per_task": {
+    "ag_news": {
+      "type": "choice",
+      "heldout": false,
+      "n_options": 4,
+      "T": 6.6776,
+      "before": {
+        "n": 50,
+        "acc": 0.92,
+        "nll": 1.0273,
+        "ece": 0.0781,
+        "mean_confidence": 0.9974
+      },
+      "after": {
+        "n": 50,
+        "acc": 0.92,
+        "nll": 0.3466,
+        "ece": 0.1142,
+        "mean_confidence": 0.7754
+      }
+    },
+    "emotion": {
+      "type": "choice",
+      "heldout": false,
+      "n_options": 6,
+      "T": 6.1234,
+      "before": {
+        "n": 50,
+        "acc": 0.72,
+        "nll": 4.8329,
+        "ece": 0.3034,
+        "mean_confidence": 0.9652
+      },
+      "after": {
+        "n": 50,
+        "acc": 0.72,
+        "nll": 1.0821,
+        "ece": 0.1851,
+        "mean_confidence": 0.7176
+      }
+    },
+    "mnli": {
+      "type": "choice",
+      "heldout": false,
+      "n_options": 3,
+      "T": 7.101,
+      "before": {
+        "n": 50,
+        "acc": 0.68,
+        "nll": 2.7827,
+        "ece": 0.3006,
+        "mean_confidence": 0.9542
+      },
+      "after": {
+        "n": 50,
+        "acc": 0.68,
+        "nll": 0.6768,
+        "ece": 0.1637,
+        "mean_confidence": 0.6467
+      }
+    },
+    "tweet_sentiment": {
+      "type": "choice",
+      "heldout": false,
+      "n_options": 3,
+      "T": 7.101,
+      "before": {
+        "n": 50,
+        "acc": 0.5,
+        "nll": 5.6176,
+        "ece": 0.4835,
+        "mean_confidence": 0.96
+      },
+      "after": {
+        "n": 50,
+        "acc": 0.5,
+        "nll": 1.1326,
+        "ece": 0.2334,
+        "mean_confidence": 0.586
+      }
+    },
+    "yahoo_topics": {
+      "type": "choice",
+      "heldout": false,
+      "n_options": 10,
+      "T": 5.4901,
+      "before": {
+        "n": 50,
+        "acc": 0.48,
+        "nll": 6.9541,
+        "ece": 0.4914,
+        "mean_confidence": 0.9586
+      },
+      "after": {
+        "n": 50,
+        "acc": 0.48,
+        "nll": 1.729,
+        "ece": 0.1845,
+        "mean_confidence": 0.6132
+      }
+    },
+    "banking77": {
+      "type": "choice",
+      "heldout": false,
+      "n_options": 77,
+      "T": 3.5492,
+      "before": {
+        "n": 30,
+        "acc": 0.6667,
+        "nll": 4.262,
+        "ece": 0.363,
+        "mean_confidence": 0.9511
+      },
+      "after": {
+        "n": 30,
+        "acc": 0.6667,
+        "nll": 1.6182,
+        "ece": 0.2557,
+        "mean_confidence": 0.6762
+      }
+    },
+    "yelp_polarity": {
+      "type": "choice",
+      "heldout": false,
+      "n_options": 2,
+      "T": 7.7438,
+      "before": {
+        "n": 50,
+        "acc": 0.96,
+        "nll": 0.5547,
+        "ece": 0.04,
+        "mean_confidence": 1.0
+      },
+      "after": {
+        "n": 50,
+        "acc": 0.96,
+        "nll": 0.1894,
+        "ece": 0.0709,
+        "mean_confidence": 0.7782
+      }
+    },
+    "dbpedia": {
+      "type": "choice",
+      "heldout": true,
+      "n_options": 14,
+      "T": 5.1092,
+      "before": {
+        "n": 50,
+        "acc": 0.98,
+        "nll": 0.4188,
+        "ece": 0.0276,
+        "mean_confidence": 0.9917
+      },
+      "after": {
+        "n": 50,
+        "acc": 0.98,
+        "nll": 0.3831,
+        "ece": 0.2349,
+        "mean_confidence": 0.7255
+      }
+    },
+    "clinc_oos": {
+      "type": "choice",
+      "heldout": true,
+      "n_options": 151,
+      "T": 3.0734,
+      "before": {
+        "n": 30,
+        "acc": 0.6333,
+        "nll": 3.2285,
+        "ece": 0.3288,
+        "mean_confidence": 0.9374
+      },
+      "after": {
+        "n": 30,
+        "acc": 0.6333,
+        "nll": 1.6411,
+        "ece": 0.17,
+        "mean_confidence": 0.5967
+      }
+    },
+    "subj": {
+      "type": "choice",
+      "heldout": true,
+      "n_options": 2,
+      "T": 7.7438,
+      "before": {
+        "n": 50,
+        "acc": 0.84,
+        "nll": 1.0594,
+        "ece": 0.1474,
+        "mean_confidence": 0.9749
+      },
+      "after": {
+        "n": 50,
+        "acc": 0.84,
+        "nll": 0.367,
+        "ece": 0.1107,
+        "mean_confidence": 0.5944
+      }
+    },
+    "sst5": {
+      "type": "score",
+      "heldout": false,
+      "n_options": 5,
+      "T": 5.5713,
+      "before": {
+        "n": 50,
+        "acc": 0.54,
+        "nll": 2.3021,
+        "ece": 0.3828,
+        "mean_confidence": 0.9035,
+        "mae": 0.4618
+      },
+      "after": {
+        "n": 50,
+        "acc": 0.54,
+        "nll": 0.9938,
+        "ece": 0.0289,
+        "mean_confidence": 0.4531,
+        "mae": 0.4744
+      }
+    },
+    "yelp": {
+      "type": "score",
+      "heldout": false,
+      "n_options": 5,
+      "T": 5.5713,
+      "before": {
+        "n": 50,
+        "acc": 0.54,
+        "nll": 3.0982,
+        "ece": 0.3954,
+        "mean_confidence": 0.8679,
+        "mae": 0.7603
+      },
+      "after": {
+        "n": 50,
+        "acc": 0.54,
+        "nll": 1.3084,
+        "ece": 0.1594,
+        "mean_confidence": 0.3391,
+        "mae": 0.8347
+      }
+    },
+    "amazon": {
+      "type": "score",
+      "heldout": true,
+      "n_options": 5,
+      "T": 5.5713,
+      "before": {
+        "n": 50,
+        "acc": 0.58,
+        "nll": 2.6514,
+        "ece": 0.3682,
+        "mean_confidence": 0.8904,
+        "mae": 0.4969
+      },
+      "after": {
+        "n": 50,
+        "acc": 0.58,
+        "nll": 1.0951,
+        "ece": 0.0558,
+        "mean_confidence": 0.4274,
+        "mae": 0.5047
+      }
+    },
+    "stsb": {
+      "type": "score",
+      "heldout": true,
+      "n_options": 6,
+      "T": 5.5713,
+      "before": {
+        "n": 50,
+        "acc": 0.34,
+        "nll": 3.6145,
+        "ece": 0.5155,
+        "mean_confidence": 0.8266,
+        "mae": 0.7146
+      },
+      "after": {
+        "n": 50,
+        "acc": 0.34,
+        "nll": 1.3838,
+        "ece": 0.1728,
+        "mean_confidence": 0.3828,
+        "mae": 0.6728
+      }
+    },
+    "rte": {
+      "type": "noul",
+      "heldout": false,
+      "n_options": 2,
+      "T": 5.0112,
+      "before": {
+        "n": 50,
+        "acc": 0.88,
+        "nll": 0.498,
+        "ece": 0.1142,
+        "mean_confidence": 0.9683
+      },
+      "after": {
+        "n": 50,
+        "acc": 0.88,
+        "nll": 0.3693,
+        "ece": 0.1211,
+        "mean_confidence": 0.5293
+      }
+    },
+    "mrpc": {
+      "type": "noul",
+      "heldout": false,
+      "n_options": 2,
+      "T": 5.0112,
+      "before": {
+        "n": 50,
+        "acc": 0.6,
+        "nll": 1.8872,
+        "ece": 0.3822,
+        "mean_confidence": 0.9427
+      },
+      "after": {
+        "n": 50,
+        "acc": 0.6,
+        "nll": 0.6741,
+        "ece": 0.164,
+        "mean_confidence": 0.4847
+      }
+    },
+    "qqp": {
+      "type": "noul",
+      "heldout": false,
+      "n_options": 2,
+      "T": 5.0112,
+      "before": {
+        "n": 50,
+        "acc": 0.74,
+        "nll": 0.9559,
+        "ece": 0.2193,
+        "mean_confidence": 0.9185
+      },
+      "after": {
+        "n": 50,
+        "acc": 0.74,
+        "nll": 0.4715,
+        "ece": 0.0753,
+        "mean_confidence": 0.5148
+      }
+    },
+    "paws": {
+      "type": "noul",
+      "heldout": true,
+      "n_options": 2,
+      "T": 5.0112,
+      "before": {
+        "n": 50,
+        "acc": 0.82,
+        "nll": 0.9306,
+        "ece": 0.1481,
+        "mean_confidence": 0.9361
+      },
+      "after": {
+        "n": 50,
+        "acc": 0.82,
+        "nll": 0.4898,
+        "ece": 0.1271,
+        "mean_confidence": 0.4787
+      }
+    },
+    "boolq": {
+      "type": "noul",
+      "heldout": false,
+      "n_options": 2,
+      "T": 5.0112,
+      "before": {
+        "n": 50,
+        "acc": 0.84,
+        "nll": 0.9442,
+        "ece": 0.1513,
+        "mean_confidence": 0.9826
+      },
+      "after": {
+        "n": 50,
+        "acc": 0.84,
+        "nll": 0.3555,
+        "ece": 0.0603,
+        "mean_confidence": 0.7012
+      }
+    },
+    "scitail": {
+      "type": "noul",
+      "heldout": true,
+      "n_options": 2,
+      "T": 5.0112,
+      "before": {
+        "n": 50,
+        "acc": 0.84,
+        "nll": 0.7265,
+        "ece": 0.152,
+        "mean_confidence": 0.9489
+      },
+      "after": {
+        "n": 50,
+        "acc": 0.84,
+        "nll": 0.3844,
+        "ece": 0.0774,
+        "mean_confidence": 0.5797
+      }
+    },
+    "tweet_offensive": {
+      "type": "noul",
+      "heldout": false,
+      "n_options": 2,
+      "T": 5.0112,
+      "before": {
+        "n": 50,
+        "acc": 0.84,
+        "nll": 0.6867,
+        "ece": 0.1404,
+        "mean_confidence": 0.9403
+      },
+      "after": {
+        "n": 50,
+        "acc": 0.84,
+        "nll": 0.376,
+        "ece": 0.0586,
+        "mean_confidence": 0.5794
+      }
+    },
+    "tweet_hate": {
+      "type": "noul",
+      "heldout": false,
+      "n_options": 2,
+      "T": 5.0112,
+      "before": {
+        "n": 50,
+        "acc": 0.66,
+        "nll": 1.7794,
+        "ece": 0.3018,
+        "mean_confidence": 0.8265
+      },
+      "after": {
+        "n": 50,
+        "acc": 0.66,
+        "nll": 0.6853,
+        "ece": 0.1096,
+        "mean_confidence": 0.4314
+      }
+    },
+    "tweet_irony": {
+      "type": "noul",
+      "heldout": false,
+      "n_options": 2,
+      "T": 5.0112,
+      "before": {
+        "n": 50,
+        "acc": 0.7,
+        "nll": 1.2452,
+        "ece": 0.2667,
+        "mean_confidence": 0.9334
+      },
+      "after": {
+        "n": 50,
+        "acc": 0.7,
+        "nll": 0.5179,
+        "ece": 0.1375,
+        "mean_confidence": 0.5353
+      }
+    },
+    "cola": {
+      "type": "noul",
+      "heldout": false,
+      "n_options": 2,
+      "T": 5.0112,
+      "before": {
+        "n": 50,
+        "acc": 0.76,
+        "nll": 2.023,
+        "ece": 0.2438,
+        "mean_confidence": 0.95
+      },
+      "after": {
+        "n": 50,
+        "acc": 0.76,
+        "nll": 0.5759,
+        "ece": 0.1569,
+        "mean_confidence": 0.6922
+      }
+    },
+    "sms_spam": {
+      "type": "noul",
+      "heldout": false,
+      "n_options": 2,
+      "T": 5.0112,
+      "before": {
+        "n": 50,
+        "acc": 0.98,
+        "nll": 0.0988,
+        "ece": 0.025,
+        "mean_confidence": 0.9798
+      },
+      "after": {
+        "n": 50,
+        "acc": 0.98,
+        "nll": 0.2243,
+        "ece": 0.1632,
+        "mean_confidence": 0.6335
+      }
+    },
+    "sst2": {
+      "type": "noul",
+      "heldout": false,
+      "n_options": 2,
+      "T": 5.0112,
+      "before": {
+        "n": 50,
+        "acc": 0.92,
+        "nll": 0.7813,
+        "ece": 0.0793,
+        "mean_confidence": 0.9986
+      },
+      "after": {
+        "n": 50,
+        "acc": 0.92,
+        "nll": 0.2379,
+        "ece": 0.0238,
+        "mean_confidence": 0.8453
+      }
+    }
+  }
+}

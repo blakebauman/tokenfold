@@ -22,10 +22,13 @@ htmlcov/
 .env.*
 !.env.example
 
-# Local data: labeled datasets and fitted calibration files
-data/
+# Local data: sampled datasets, raw pages, and logits stay local.
+# Fitted calibration files and baseline reports are versioned.
+data/*
+!data/calibration.*.json
+!data/reports/
+data/reports/*.log
 *.jsonl
-calibration*.json
 
 # Editors / OS
 .idea/
