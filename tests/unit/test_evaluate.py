@@ -65,3 +65,29 @@ def test_saved_logits_match_by_key_and_may_cover_more_rows(tmp_path):
 
     with pytest.raises(SystemExit, match="1 of 1"):
         load_logits(str(p), [{"state": "new", "question": {"type": "noul", "instructions": "?"}}])
+
+
+def test_priors_are_saved_loaded_and_fit(tmp_path):
+    def row(text):
+        return {
+            "state": text,
+            "question": {"type": "noul", "instructions": "?"},
+            "logits": [0.0, -1.0],
+            "prior": [2.0, 0.0],
+        }
+
+    p = tmp_path / "logits.json"
+    save_logits(str(p), "m", [row("a")])
+    back = [{k: v for k, v in row("a").items() if k not in ("logits", "prior")}]
+    load_logits(str(p), back)
+    assert back[0]["prior"] == [2.0, 0.0]
+
+    rows = rows_for("t", CHOICE, 200)
+    for r in rows:  # a prior strong enough to flip every argmax to option 0, recorded as the prior
+        r["logits"] = [r["logits"][0] + 10.0, r["logits"][1]]
+        r["prior"] = [10.0, 0.0]
+    report, _ = evaluate(rows)
+    assert report["per_type"]["choice"]["prior_weight"] > 0
+    assert report["per_task"]["t"]["after"]["acc"] > report["per_task"]["t"]["before"]["acc"]
+    pinned, cal0 = evaluate(rows, prior_weights=(0.0,))
+    assert pinned["per_type"]["choice"]["prior_weight"] == 0.0 and cal0.prior_weight["choice"] == 0.0

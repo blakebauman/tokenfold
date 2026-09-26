@@ -25,7 +25,9 @@ against `limits.max_cost_usd`. Felix prices them at Jev's catalog rate, not your
      question and each candidate only costs its own tokens.
 3. `calibration.py` applies a per-type temperature that scales with the option count,
    `T(n) = T·(n/2)^slope` (fit on labeled data), to turn logits into calibrated probabilities.
-   Temperature never changes the argmax and generalizes to any option count.
+   Temperature never changes the argmax and generalizes to any option count. An optional content-free
+   prior correction (contextual calibration) is wired in but off: on the Qwen3-4B baseline it did not
+   improve the test halves, so the shipped calibration keeps the prior weight at 0.
 4. `answers.py` shapes the typed answer: `confidence = (n·p_max − 1)/(n − 1)`,
    `score = Σ i·p_i` with a `legend`, `noul = p(yes)`.
 
@@ -57,6 +59,7 @@ offline and deterministic for a given seed.
 The harness splits each task into calibration and test halves, fits one temperature curve per
 question type on the calibration halves of the **non-heldout** tasks, and reports acc / NLL / ECE (and MAE of
 the expected level for score) per task and per type, raw and calibrated, plus per-request latency.
+`--prior-weight fit` also tries the content-free prior correction from the same saved logits.
 Heldout tasks (dbpedia, clinc_oos, subj, amazon, stsb, paws, scitail) show whether the fitted
 temperatures transfer to question shapes they weren't fit on, which is the production case.
 Raw LLM logprobs are badly overconfident; expect T well above 1.

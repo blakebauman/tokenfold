@@ -8,5 +8,10 @@
     "choice": -0.21370890463451317,
     "score": 0.0,
     "noul": 0.0
+  },
+  "prior_weights": {
+    "choice": 0.0,
+    "score": 0.0,
+    "noul": 0.0
   }
 }

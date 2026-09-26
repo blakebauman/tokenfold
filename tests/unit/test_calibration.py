@@ -53,3 +53,40 @@ def test_save_load_roundtrip_and_old_files_without_slopes(tmp_path):
     p.write_text(json.dumps({"temperatures": {"choice": 4.0}}))
     old = Calibrator.load(str(p))
     assert old.temperature("choice", 2) == old.temperature("choice", 150) == 4.0
+
+
+def test_prior_weight_is_fit_when_a_prior_bias_is_present():
+    """Logits = signal + per-option prior. Subtracting the prior (w=1) should win; w=0 loses NLL."""
+    rng = np.random.default_rng(0)
+    prior = np.array([0.0, 3.0, -3.0])  # a strong pull toward option 1
+    rows, ys, priors = [], [], []
+    for _ in range(600):
+        g = rng.normal(0, 2, 3)
+        ys.append(int(rng.choice(3, p=softmax(g))))
+        rows.append(g * 2 + prior)
+        priors.append(prior)
+    cal = Calibrator()
+    cal.fit("choice", rows, ys, priors)
+    assert cal.prior_weight["choice"] >= 0.75
+    plain = Calibrator()
+    plain.fit("choice", rows, ys)  # no priors -> temperature only
+    assert plain.prior_weight["choice"] == 0.0
+    # the correction can move the argmax; temperature alone never does
+    z = [1.0, 2.0, -5.0]
+    assert int(np.argmax(cal.apply("choice", z, prior))) == 0
+    assert int(np.argmax(plain.apply("choice", z))) == 1
+
+
+def test_prior_weight_round_trips_and_old_files_load_without_it(tmp_path):
+    cal = Calibrator({"noul": 3.0}, prior_weights={"noul": 0.5})
+    assert cal.needs_prior
+    p = tmp_path / "cal.json"
+    cal.save(str(p))
+    back = Calibrator.load(str(p))
+    assert back.prior_weight["noul"] == 0.5 and back.T["noul"] == 3.0
+    old = tmp_path / "old.json"
+    old.write_text(json.dumps({"temperatures": {"noul": 3.0}}))
+    legacy = Calibrator.load(str(old))
+    assert not legacy.needs_prior and list(legacy.apply("noul", [0.0, -1.0], [5.0, 0.0])) == list(
+        legacy.apply("noul", [0.0, -1.0])
+    )

@@ -71,10 +71,19 @@ integration tests bind `127.0.0.1:0`. On this machine, port 8080 is often taken 
     prefix, it falls back to the last token. Cost is N forward passes per question.
 - **calibration.py** fits a temperature curve per question type, `T(n) = T·(n/2)^slope` over the option count n,
   by minimizing NLL. T(n) is clamped to 0.05–20 and the slope to ±1. The slope is fit only when the calibration
-  rows span more than one option count, so noul keeps slope 0. It's stored as
-  `{"temperatures": {...}, "slopes": {...}}` JSON, and older files with no `slopes` load as slope 0. It is
-  deliberately temperature-only: that preserves the argmax and works for any option count, which matters because
-  callers define option sets per request. Don't swap in Platt or isotonic.
+  rows span more than one option count, so noul keeps slope 0. It can also apply a **prior weight** per type
+  (contextual calibration): the engine scores each question once against `prompt.CONTENT_FREE_STATE` (`"N/A"`),
+  and `prior_weight · prior_logits` is subtracted before the temperature. That is the one thing that can change
+  the argmax. It is **off by default and stays at 0 in the shipped calibration**: on the Qwen3-4B baseline it did
+  not transfer to the test halves (flat NLL, −1 point choice accuracy, no heldout gain) under any content-free
+  state tried, and an end-level penalty for score didn't help either. The observed skews (end levels, "neutral")
+  are not separable from the state. Don't re-enable it without a harness result; `--prior-weight fit` tries it.
+  The file is `{"temperatures": {...}, "slopes": {...}, "prior_weights": {...}}` JSON; older files load with slope
+  0 and no prior. Temperature is used rather than Platt or isotonic because it works for any option count, which
+  matters because callers define option sets per request. Don't swap those in.
+- **engine.py** caches prior logits by content-free prompt text (`PRIOR_CACHE_SIZE` entries), so a question's
+  prior is scored once and only when the calibrator's `needs_prior` is true. Uncached priors ride in the same
+  backend batch as the request's real prompts. `raw_logits` and `prior_logits` feed the harness separately.
 - **answers.py** is pure numpy.
   - `confidence = (n·p_max − 1)/(n − 1)`
   - A score answer is `Σ i·p_i`, the probability-weighted level, so it can fall between levels.
@@ -89,7 +98,8 @@ integration tests bind `127.0.0.1:0`. On this machine, port 8080 is often taken 
   into one request, just like production. The harness splits **each task** by `--cal-frac`, seeded per task so
   adding a task never reshuffles another's split, then fits one temperature curve per type on the non-heldout
   calibration rows. `--save-logits` writes the raw logits after scoring, and `--from-logits` refits from them
-  without a model (the report then has no latency). It reports each task's test half raw and calibrated,
+  without a model (the report then has no latency). The logits file also holds each row's content-free prior,
+  so `--prior-weight fit` can A/B the prior correction offline. It reports each task's test half raw and calibrated,
   covering acc, NLL, ECE, MAE of the expected level for score, and per-request latency. Rows without `task` or
   `heldout` default to `default` and `False`. `label` is an option key (choice), a level index (score), or a
   bool (noul).

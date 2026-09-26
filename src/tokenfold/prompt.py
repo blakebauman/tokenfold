@@ -19,6 +19,11 @@ SYSTEM = (
 )
 
 
+# Scoring a question against this state measures each candidate's state-independent prior (see
+# calibration.py). "N/A" rather than "" so the prompt still reads as a filled-in template.
+CONTENT_FREE_STATE = "N/A"
+
+
 def build_prompt(state: Json, q: Question) -> tuple[str, list[str]]:
     """Returns (prompt_prefix, candidate_answer_strings). Candidates are what the backend scores."""
     parts = [SYSTEM, "", "STATE:", _render(state), "", "QUESTION:", _render(q.instructions), ""]

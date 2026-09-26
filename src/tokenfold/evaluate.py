@@ -15,8 +15,12 @@ tasks, then every task's test part is scored raw (T=1) and calibrated. Heldout t
 whether the fitted temperatures transfer to unseen question shapes. Rows sharing the same state are
 batched into one request (same as production), and each request's wall time is recorded as latency.
 
-Scoring is the slow part (~20 min for the llama baseline), so `--save-logits` writes the raw logits and
-`--from-logits` refits and re-reports from them without touching a model (no latency then)."""
+Each distinct question is also scored once against the content-free state and the prior is saved with the
+logits, so `--prior-weight fit` can try the correction offline (see calibration.py). It is off by default.
+
+Scoring is the slow part (~20 min for the llama baseline), so `--save-logits` writes the raw logits (and
+the priors) and `--from-logits` refits and re-reports from them without touching a model (no latency
+then)."""
 
 from __future__ import annotations
 
@@ -33,9 +37,9 @@ from pathlib import Path
 import numpy as np
 
 from .answers import choice_confidence, softmax
-from .calibration import TYPES, Calibrator
+from .calibration import PRIOR_WEIGHTS, TYPES, Calibrator
 from .engine import Engine
-from .schema import Request, parse_question
+from .schema import Question, Request, parse_question
 from .server import BACKENDS, make_engine
 
 
@@ -57,8 +61,20 @@ def load_rows(path: str) -> list[dict]:
     return rows
 
 
+def collect_priors(engine: Engine, rows: list[dict]) -> None:
+    """Attach the content-free prior logits to each row: one backend item per distinct question."""
+    distinct: dict[str, Question] = {}
+    for r in rows:
+        distinct.setdefault(json.dumps(r["question"], sort_keys=True), r["q"])
+    keys = list(distinct)
+    priors = engine.prior_logits({f"p{i}": distinct[k] for i, k in enumerate(keys)})
+    by_key = {k: priors[f"p{i}"] for i, k in enumerate(keys)}
+    for r in rows:
+        r["prior"] = by_key[json.dumps(r["question"], sort_keys=True)]
+
+
 def collect_logits(engine: Engine, rows: list[dict], progress: bool = False) -> list[float]:
-    """Attach raw backend logits to each row, batching rows by identical state.
+    """Attach raw backend logits (and content-free priors) to each row, batching rows by identical state.
     Returns per-request latency in milliseconds."""
     by_state: dict[str, list[int]] = defaultdict(list)
     for i, r in enumerate(rows):
@@ -78,6 +94,7 @@ def collect_logits(engine: Engine, rows: list[dict], progress: bool = False) -> 
             print(
                 f"  {n}/{len(by_state)} requests  {elapsed:.0f}s elapsed  ~{eta:.0f}s left", file=sys.stderr
             )
+    collect_priors(engine, rows)
     return latencies
 
 
@@ -87,7 +104,13 @@ def row_key(r: dict) -> str:
 
 def save_logits(path: str, model: str, rows: list[dict]) -> None:
     Path(path).parent.mkdir(parents=True, exist_ok=True)
-    payload = {"model": model, "rows": [{"key": row_key(r), "logits": r["logits"]} for r in rows]}
+    payload = {
+        "model": model,
+        "rows": [
+            {"key": row_key(r), "logits": r["logits"], **({"prior": r["prior"]} if "prior" in r else {})}
+            for r in rows
+        ],
+    }
     Path(path).write_text(json.dumps(payload))
 
 
@@ -95,12 +118,15 @@ def load_logits(path: str, rows: list[dict]) -> str:
     """Attach saved logits to rows, matched by (state, question) key, so a file may cover more rows than
     --data/--tasks selects (e.g. after merging scores for newly added tasks). Returns the model name."""
     saved = json.loads(Path(path).read_text())
-    by_key = {s["key"]: s["logits"] for s in saved["rows"]}
+    by_key = {s["key"]: s for s in saved["rows"]}
     missing = sum(row_key(r) not in by_key for r in rows)
     if missing:
         raise SystemExit(f"{path} has no logits for {missing} of {len(rows)} rows; score them first")
     for r in rows:
-        r["logits"] = by_key[row_key(r)]
+        s = by_key[row_key(r)]
+        r["logits"] = s["logits"]
+        if "prior" in s:  # files saved before priors existed can only fit temperature
+            r["prior"] = s["prior"]
     return saved["model"]
 
 
@@ -119,7 +145,9 @@ def ece(probs_list, ys, bins=10) -> float:
 
 def metrics(rows: list[dict], cal: Calibrator | None = None) -> dict:
     """cal=None scores the raw logits (T=1)."""
-    probs = [cal.apply(r["q"].type, r["logits"]) if cal else softmax(r["logits"]) for r in rows]
+    probs = [
+        cal.apply(r["q"].type, r["logits"], r.get("prior")) if cal else softmax(r["logits"]) for r in rows
+    ]
     ys = [r["y"] for r in rows]
     nll = -np.mean([np.log(max(p[y], 1e-12)) for p, y in zip(probs, ys, strict=True)])
     acc = np.mean([int(np.argmax(p)) == y for p, y in zip(probs, ys, strict=True)])
@@ -163,8 +191,11 @@ def split_by_task(rows: list[dict], cal_frac: float, seed: int) -> tuple[list[di
     return fit, test
 
 
-def evaluate(rows: list[dict], cal_frac: float = 0.5, seed: int = 0) -> tuple[dict, Calibrator]:
-    """rows must already carry logits. Returns (report, fitted calibrator)."""
+def evaluate(
+    rows: list[dict], cal_frac: float = 0.5, seed: int = 0, prior_weights: tuple[float, ...] = PRIOR_WEIGHTS
+) -> tuple[dict, Calibrator]:
+    """rows must already carry logits (and priors, to fit a prior weight). Returns (report, fitted
+    calibrator). `prior_weights` is the grid the weight is chosen from; (0.0,) pins it off."""
     fit, test = split_by_task(rows, cal_frac, seed)
     fit = [r for r in fit if not r["heldout"]]
     cal = Calibrator()
@@ -174,10 +205,12 @@ def evaluate(rows: list[dict], cal_frac: float = 0.5, seed: int = 0) -> tuple[di
         test_t = [r for r in test if r["q"].type == t]
         if len(fit_t) < 10 or not test_t:
             continue
-        T = cal.fit(t, [r["logits"] for r in fit_t], [r["y"] for r in fit_t])
+        priors = [r["prior"] for r in fit_t] if all("prior" in r for r in fit_t) else None
+        T = cal.fit(t, [r["logits"] for r in fit_t], [r["y"] for r in fit_t], priors, prior_weights)
         per_type[t] = {
             "T": round(T, 4),
             "slope": round(cal.slope[t], 4),
+            "prior_weight": cal.prior_weight[t],
             "fit_n": len(fit_t),
             "before": metrics(test_t),
         }
@@ -216,7 +249,8 @@ def print_table(report: dict) -> None:
     for t, m in report["per_type"].items():
         b, a = m["before"], m["after"]
         print(
-            f"[{t}] T={m['T']} slope={m.get('slope', 0)}  acc {a['acc']:.3f}"
+            f"[{t}] T={m['T']} slope={m.get('slope', 0)} prior_w={m.get('prior_weight', 0)}"
+            f"  acc {a['acc']:.3f}"
             f"  ece {b['ece']:.3f} -> {a['ece']:.3f}"
             f"  nll {b['nll']:.3f} -> {a['nll']:.3f}"
         )
@@ -236,7 +270,14 @@ def main():
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--save-logits", help="write raw logits here after scoring")
     ap.add_argument("--from-logits", help="skip scoring; reuse logits written by --save-logits")
+    ap.add_argument(
+        "--prior-weight",
+        default="0",
+        help="content-free prior weight: a number to pin it, or 'fit' to pick per type from the grid "
+        "(default 0: off, since it did not help the Qwen3-4B baseline; see calibration.py)",
+    )
     a = ap.parse_args()
+    weights = PRIOR_WEIGHTS if a.prior_weight == "fit" else (float(a.prior_weight),)
 
     rows = load_rows(a.data)
     if a.tasks:
@@ -255,7 +296,7 @@ def main():
             save_logits(a.save_logits, model, rows)
             print(f"logits -> {a.save_logits}", file=sys.stderr)
 
-    report, cal = evaluate(rows, a.cal_frac, a.seed)
+    report, cal = evaluate(rows, a.cal_frac, a.seed, weights)
     report = {"model": model, "data": a.data, "rows": len(rows), **report, **latency}
     cal.save(a.out)
     print_table(report)
