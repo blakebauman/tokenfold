@@ -76,7 +76,7 @@ Raw LLM logprobs are badly overconfident; expect T well above 1.
     src/tokenfold/calibration.py    temperature scaling
     src/tokenfold/answers.py        typed answer math
     src/tokenfold/engine.py         request -> response
-    src/tokenfold/server.py         stdlib HTTP server (swap for FastAPI)
+    src/tokenfold/server.py         FastAPI app + uvicorn entry point (GET /healthz, POST /v1/tokenfold)
     src/tokenfold/evaluate.py       calibration + metrics harness
     src/tokenfold/tasks/            public-dataset task registry, datasets-server sampler, eval builder
     examples/                       client, mock dataset generator

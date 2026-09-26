@@ -1,15 +1,19 @@
-"""Minimal HTTP server exposing POST /v1/tokenfold. Stdlib only; swap for FastAPI when you
-have it — Engine/parse_request are framework-agnostic.
-  python -m tokenfold.server --backend mock --port 8080
-  python -m tokenfold.server --backend vllm --calibration cal.json
-  python -m tokenfold.server --backend llama   # $TOKENFOLD_LLAMA_MODEL, see backends/llama_cpp.py"""
+"""FastAPI server exposing POST /v1/tokenfold. Engine/parse_request stay framework-agnostic.
+tokenfold-server --backend mock --port 8080
+tokenfold-server --backend vllm --calibration cal.json
+tokenfold-server --backend llama   # $TOKENFOLD_LLAMA_MODEL, see backends/llama_cpp.py"""
 
 from __future__ import annotations
 
 import argparse
 import json
 import os
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+import uvicorn
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.concurrency import run_in_threadpool
+from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from .backends import LlamaCppBackend, MockBackend, VLLMLogprobBackend
 from .calibration import Calibrator
@@ -29,35 +33,36 @@ def make_engine(backend: str, calibration: str | None) -> Engine:
     return Engine(be, cal)
 
 
-class Handler(BaseHTTPRequestHandler):
-    engine: Engine  # set by main() before serving
-    api_key: str | None = None
+def create_app(engine: Engine, api_key: str | None = None) -> FastAPI:
+    """Build the app around one shared engine. Every error is `{"error": str}` with the TypeSafe-style
+    status codes: 401 bad key, 404 unknown path, 422 bad request, 529 backend failure."""
+    app = FastAPI(title="tokenfold", docs_url=None, redoc_url=None, openapi_url=None)
 
-    def _send(self, code: int, obj: dict):
-        body = json.dumps(obj).encode()
-        self.send_response(code)
-        self.send_header("Content-Type", "application/json")
-        self.send_header("Content-Length", str(len(body)))
-        self.end_headers()
-        self.wfile.write(body)
+    # Starlette's base class also covers the router's own 404/405, so those get the same shape.
+    @app.exception_handler(StarletteHTTPException)
+    async def _http_error(_: Request, exc: StarletteHTTPException) -> JSONResponse:
+        return JSONResponse({"error": str(exc.detail)}, status_code=exc.status_code)
 
-    def do_POST(self):
-        if self.path not in PATHS:
-            return self._send(404, {"error": "not found"})
-        if self.api_key and self.headers.get("Authorization") != f"Bearer {self.api_key}":
-            return self._send(401, {"error": "missing or invalid API key"})
+    @app.get("/healthz")
+    async def healthz() -> dict:
+        return {"ok": True, "backend": engine.backend.name}
+
+    async def evaluate(request: Request) -> dict:
+        if api_key and request.headers.get("Authorization") != f"Bearer {api_key}":
+            raise HTTPException(401, "missing or invalid API key")
         try:
-            raw = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0))) or b"{}")
-            req = parse_request(raw)
+            req = parse_request(json.loads(await request.body() or b"{}"))
         except (json.JSONDecodeError, ValidationError) as e:
-            return self._send(422, {"error": str(e)})
+            raise HTTPException(422, str(e)) from e
         try:
-            self._send(200, self.engine.evaluate(req))
+            # Backends block (llama holds a lock, vLLM uses requests), so keep the event loop free.
+            return await run_in_threadpool(engine.evaluate, req)
         except Exception as e:  # backend failure
-            self._send(529, {"error": f"backend error: {e}"})
+            raise HTTPException(529, f"backend error: {e}") from e
 
-    def log_message(self, format: str, *args: object) -> None:  # quieter
-        pass
+    for path in PATHS:
+        app.post(path)(evaluate)
+    return app
 
 
 def main():
@@ -67,10 +72,9 @@ def main():
     ap.add_argument("--port", type=int, default=8080)
     ap.add_argument("--api-key", default=os.environ.get("TOKENFOLD_API_KEY"))
     a = ap.parse_args()
-    Handler.engine = make_engine(a.backend, a.calibration)
-    Handler.api_key = a.api_key
-    print(f"tokenfold listening on :{a.port} backend={Handler.engine.backend.name} T={Handler.engine.cal.T}")
-    ThreadingHTTPServer(("0.0.0.0", a.port), Handler).serve_forever()
+    engine = make_engine(a.backend, a.calibration)
+    print(f"tokenfold listening on :{a.port} backend={engine.backend.name} T={engine.cal.T}")
+    uvicorn.run(create_app(engine, a.api_key), host="0.0.0.0", port=a.port, log_level="warning")
 
 
 if __name__ == "__main__":
